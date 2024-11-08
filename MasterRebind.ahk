@@ -1,55 +1,29 @@
 #SingleInstance
-scrolled := False
-SetNumLockState "AlwaysOn"
-
-RButton::
-{
-    global scrolled
-    Click "Right Down"
-    KeyWait "RButton"
-    Click "Right Up"
-    if (scrolled)
-    {   
-        ; cancel context menu
-        sleep 10
-        Send "{Esc}"
-        scrolled := False
-        return
-    }
-    return
-}
-
-~RButton & WheelUp:: 
-{
-    global scrolled
-    Send "{WheelLeft}"
-    scrolled := True
-    return
-}
-
-~RButton & WheelDown::
-{
-    global scrolled
-    Send "{WheelRight}"
-    scrolled := True
-    return
-}
+A_HotkeyInterval := 0
+; SetNumLockState "AlwaysOn"
 
 ; button remaps
-XButton2::XButton1
-XButton1::Media_Play_Pause
+XButton1::Browser_Back
+XButton2::Media_Play_Pause
 PrintScreen::^+s
 +PrintScreen::^+Space
 Home::Media_Play_Pause
+; horizontal scroll
+RButton & WheelDown::+WheelDown
+RButton & WheelUp::+WheelUp
+RButton::RButton
+WheelDown::WheelDown
+WheelUp::WheelUp
 
 ; borderless window toggle
 ; Declare windowStates at the top level to ensure it is recognized as a global variable
 ; Initialize windowStates as a Map for better structure
 windowStates := Map()
-
+PADDING := 30
 ^!f:: ; Ctrl+Alt+F to toggle
 {
     global windowStates
+    global PADDING
     active_id := WinGetID("A") ; Get the active window ID
 
     if (windowStates.Has(active_id) && windowStates[active_id]["borderless"]) {
@@ -63,15 +37,14 @@ windowStates := Map()
         windowStates[active_id]["borderless"] := false
     } else {
         ; Save the current window size, position, and ExStyle
-        locX := locY := locWidth := locHeight := ""
+        locX := locY := locWidth := locHeight := 0
+        left := top := right := bottom := 0
         originalExStyle := WinGetExStyle("ahk_id " . active_id)
         originalStyle := WinGetStyle("ahk_id " . active_id)
         WinGetPos(&locX, &locY, &locWidth, &locHeight, "ahk_id " . active_id)
+        MonitorGet(0, &left, &top, &right, &bottom)
         
         ; Calculate screen dimensions dynamically
-        PADDING := 30
-        screenW := A_ScreenWidth+PADDING
-        screenH := A_ScreenHeight+PADDING
 
         ; Remove the window border and title bar by changing ExStyle
         newExStyle := originalExStyle & ~0x800000 ; Attempt to remove WS_EX_WINDOWEDGE style
@@ -79,7 +52,7 @@ windowStates := Map()
         WinSetStyle(-0xC00000, "ahk_id " . active_id) ; WS_CAPTION | WS_THICKFRAME
         
         ; Move and resize window to fill the screen
-        WinMove(-PADDING/2, -PADDING/2, screenW, screenH, "ahk_id " . active_id)
+        WinMove(left, top - PADDING/2, right - left + PADDING/2, bottom - top + PADDING, "ahk_id " . active_id)
         
         ; Store the state, original dimensions, and ExStyle of the window
         windowStates[active_id] := Map()
@@ -94,4 +67,23 @@ windowStates := Map()
     return
 }
 
+^!+f:: ; Ctrl+Alt+Shift+F to toggle padding
+{
+    global PADDING
+    if (PADDING = 30) {
+        PADDING := 32
+    } else {
+        PADDING := 30
+    }
+    TrayTip( "Padding set to " . PADDING . ".", "Padding", 0x1)
+    Sleep(3000)
+    TrayTip
+}
+
+^!r::
+{
+    TrayTip( "Reloading script...", "Reloading", 0x1)
+    Sleep(500)
+    Reload
+}
 ; 123456789034567890-32456 ; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456
