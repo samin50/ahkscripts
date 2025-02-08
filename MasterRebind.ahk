@@ -1,23 +1,26 @@
 #SingleInstance
 A_HotkeyInterval := 0
 ; SetNumLockState "AlwaysOn"
-
+F7::
+{
+    Suspend(-1)
+    TrayTip( "Suspended", "Suspended", 0x1)
+}
 ; button remaps
 XButton1::Browser_Back
 XButton2::Media_Play_Pause
 PrintScreen::^+s
 +PrintScreen::^+Space
 Home::Media_Play_Pause
+
 ; horizontal scroll
-RButton & WheelDown::+WheelDown
-RButton & WheelUp::+WheelUp
-RButton::RButton
-WheelDown::WheelDown
-WheelUp::WheelUp
+; RButton & WheelDown::+WheelDown
+; RButton & WheelUp::+WheelUp
+; RButton::RButton
+; WheelDown::WheelDown
+; WheelUp::WheelUp
 
 ; borderless window toggle
-; Declare windowStates at the top level to ensure it is recognized as a global variable
-; Initialize windowStates as a Map for better structure
 windowStates := Map()
 PADDING := 30
 ^!f:: ; Ctrl+Alt+F to toggle
