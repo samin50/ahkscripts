@@ -1,10 +1,26 @@
 #SingleInstance
 A_HotkeyInterval := 0
-; SetNumLockState "AlwaysOn"
-F7::
+suspended := false
+F9::
 {
+    global suspended
+    TrayTip( "Horizontal Scroll", (suspended ? "Suspended" : "Enabled"), 0x1)
+    Sleep(1000)
+    TrayTip
+    suspended := !suspended
+}
+^!+r::
+{
+    TrayTip( "Reloading script...", "Reloading", 0x1)
+    Sleep(1000)
+    TrayTip
+    Reload
+}
++Esc::{
     Suspend(-1)
-    TrayTip( "Suspended", "Suspended", 0x1)
+    TrayTip("Suspended", "", 0x1)
+    Sleep(1000)
+    TrayTip
 }
 ; button remaps
 XButton1::Browser_Back
@@ -12,60 +28,56 @@ XButton2::Media_Play_Pause
 PrintScreen::^+s
 +PrintScreen::^+Space
 Home::Media_Play_Pause
-
+F10::Volume_Down
+F11::Volume_Up
+F12::Volume_Mute
 ; horizontal scroll
-; RButton & WheelDown::+WheelDown
-; RButton & WheelUp::+WheelUp
-; RButton::RButton
-; WheelDown::WheelDown
-; WheelUp::WheelUp
-
+scrolled := false
+~RButton & WheelDown:: {
+    Send("+{WheelDown 8}")
+    global scrolled := true
+}
+~RButton & WheelUp:: {
+    Send("+{WheelUp 8}")
+    global scrolled := true
+}
+RButton Up:: {
+    global scrolled
+    Sleep(1)
+    if (!suspended and scrolled) {
+        Click
+        scrolled := false
+    }
+}
 ; borderless window toggle
+; Ctrl+Alt+F to toggle
 windowStates := Map()
-PADDING := 30
-^!f:: ; Ctrl+Alt+F to toggle
-{
+^!f:: {
     global windowStates
-    global PADDING
-    active_id := WinGetID("A") ; Get the active window ID
+    activeID := WinGetID("A")  ; Get the active window's ID
 
-    if (windowStates.Has(active_id) && windowStates[active_id]["borderless"]) {
-        ; Restore the window's border and size
-        currentExStyle := WinGetExStyle("ahk_id " . active_id)
-        ; Restore the previous ExStyle
-        WinSetExStyle(windowStates[active_id]["originalExStyle"], "ahk_id " . active_id)
-        WinSetStyle(windowStates[active_id]["originalStyle"], "ahk_id " . active_id)
-        ; Move and resize window to its original position and size
-        WinMove(windowStates[active_id]["X"], windowStates[active_id]["Y"], windowStates[active_id]["Width"], windowStates[active_id]["Height"], "ahk_id " . active_id)
-        windowStates[active_id]["borderless"] := false
+    if (windowStates.Has(activeID) && windowStates[activeID].borderless) {
+        ; Restore the window's original style and position.
+        WinSetExStyle(windowStates[activeID].originalExStyle, "ahk_id " . activeID)
+        WinSetStyle(windowStates[activeID].originalStyle, "ahk_id " . activeID)
+        WinMove(windowStates[activeID].X, windowStates[activeID].Y, windowStates[activeID].Width, windowStates[activeID].Height, "ahk_id " . activeID)
+        windowStates[activeID].borderless := false
     } else {
-        ; Save the current window size, position, and ExStyle
+        originalExStyle := WinGetExStyle("ahk_id " . activeID)
+        originalStyle := WinGetStyle("ahk_id " . activeID)
+        ; Remove the window border and title bar.
+        newExStyle := originalExStyle & ~0x800000
+        WinSetExStyle(newExStyle, "ahk_id " . activeID)
+        WinSetStyle(-0xC00000, "ahk_id " . activeID)
+        ; Save the original style info for later restoration.
         locX := locY := locWidth := locHeight := 0
-        left := top := right := bottom := 0
-        originalExStyle := WinGetExStyle("ahk_id " . active_id)
-        originalStyle := WinGetStyle("ahk_id " . active_id)
-        WinGetPos(&locX, &locY, &locWidth, &locHeight, "ahk_id " . active_id)
-        MonitorGet(0, &left, &top, &right, &bottom)
-        
-        ; Calculate screen dimensions dynamically
-
-        ; Remove the window border and title bar by changing ExStyle
-        newExStyle := originalExStyle & ~0x800000 ; Attempt to remove WS_EX_WINDOWEDGE style
-        WinSetExStyle(newExStyle, "ahk_id " . active_id)
-        WinSetStyle(-0xC00000, "ahk_id " . active_id) ; WS_CAPTION | WS_THICKFRAME
-        
-        ; Move and resize window to fill the screen
-        WinMove(left, top - PADDING/2, right - left + PADDING/2, bottom - top + PADDING, "ahk_id " . active_id)
-        
-        ; Store the state, original dimensions, and ExStyle of the window
-        windowStates[active_id] := Map()
-        windowStates[active_id]["X"] := locX
-        windowStates[active_id]["Y"] := locY
-        windowStates[active_id]["Width"] := locWidth
-        windowStates[active_id]["Height"] := locHeight
-        windowStates[active_id]["originalExStyle"] := originalExStyle
-        windowStates[active_id]["originalStyle"] := originalStyle
-        windowStates[active_id]["borderless"] := true
+        WinGetPos(&locX, &locY, &locWidth, &locHeight, "ahk_id " . activeID)
+        windowStates[activeID] := { 
+            X: locX, Y: locY, Width: locWidth, Height: locHeight, 
+            originalExStyle: originalExStyle, originalStyle: originalStyle, 
+            borderless: true 
+        }
+        WinMaximize("ahk_id " . activeID)
     }
     return
 }
@@ -83,10 +95,3 @@ PADDING := 30
     TrayTip
 }
 
-^!r::
-{
-    TrayTip( "Reloading script...", "Reloading", 0x1)
-    Sleep(500)
-    Reload
-}
-; 123456789034567890-32456 ; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456; 123456789034567890-32456
