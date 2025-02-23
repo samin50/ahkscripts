@@ -1,13 +1,16 @@
 #SingleInstance
 A_HotkeyInterval := 0
 suspended := false
+brightness := 1
+brightnessIncrement := 1
+; Control macros
 F9::
 {
     global suspended
-    TrayTip( "Horizontal Scroll", (suspended ? "Suspended" : "Enabled"), 0x1)
-    Sleep(1000)
-    TrayTip
+    TrayTip( "Horizontal Scroll", (suspended ? "Auto Click After Enabled" : "Auto Click After Disabled"), 0x1)
     suspended := !suspended
+    Sleep(5000)
+    TrayTip
 }
 ^!+r::
 {
@@ -19,19 +22,38 @@ F9::
 +Esc::{
     Suspend(-1)
     TrayTip("Suspended", "", 0x1)
-    Sleep(1000)
+    Sleep(5000)
     TrayTip
 }
-; button remaps
+; SDR brightness control
+; Using https://github.com/BoatStuck/SDRBrightness
+ChangeBrightness(direction) {
+    global brightness
+    if (direction = "up") {
+        if (brightness < 6) {
+            brightness += brightnessIncrement
+        }
+        Run(".\brightnessControl.exe " . brightness, ,"min")
+    } else {
+        if (brightness > 1) {
+            brightness -= brightnessIncrement
+        }
+        Run(".\brightnessControl.exe " . brightness, ,"min")
+    }
+}
+Run(".\brightnessControl.exe 1", ,"min")
+; Button remaps
 XButton1::Browser_Back
 XButton2::Media_Play_Pause
 PrintScreen::^+s
 +PrintScreen::^+Space
-Home::Media_Play_Pause
-F10::Volume_Down
-F11::Volume_Up
-F12::Volume_Mute
-; horizontal scroll
+F1::Volume_Mute
+^F2::F2
+F2::Volume_Down
+F3::Volume_Up
+F7::ChangeBrightness("down")
+F8::ChangeBrightness("up")
+; Horizontal scroll
 scrolled := false
 ~RButton & WheelDown:: {
     Send("+{WheelDown 8}")
@@ -49,7 +71,7 @@ RButton Up:: {
         scrolled := false
     }
 }
-; borderless window toggle
+; Borderless window toggle
 ; Ctrl+Alt+F to toggle
 windowStates := Map()
 ^!f:: {
@@ -81,17 +103,3 @@ windowStates := Map()
     }
     return
 }
-
-^!+f:: ; Ctrl+Alt+Shift+F to toggle padding
-{
-    global PADDING
-    if (PADDING = 30) {
-        PADDING := 32
-    } else {
-        PADDING := 30
-    }
-    TrayTip( "Padding set to " . PADDING . ".", "Padding", 0x1)
-    Sleep(3000)
-    TrayTip
-}
-
